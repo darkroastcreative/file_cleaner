@@ -34,13 +34,13 @@ jobs:
         run: dart analyze
         
       - name: Build project from source
-        run: dart compile exe ./bin/file_cleaner.dart -o ./build/file_cleaner.exe
+        run: dart compile exe D:\a\file_cleaner\file_cleaner -o D:\a\file_cleaner\file_cleaner\build\file_cleaner.exe
         
       - name: Archive built executable
         uses: actions/upload-artifact@v2
         with:
           name: file_cleaner Windows
-          path: build
+          path: D:\a\file_cleaner\file_cleaner\build
         
   build-mac:
     runs-on: macos-latest
