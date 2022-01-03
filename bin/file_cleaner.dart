@@ -1,0 +1,79 @@
+import 'dart:isolate';
+
+import 'package:file_cleaner/file_cleaner.dart' as file_cleaner;
+import 'package:args/args.dart';
+import 'dart:io';
+
+void main(List<String> arguments) async {
+  // Set up ArgParser for configuring and parsing command line arguments.
+  ArgParser argParser = ArgParser();
+  argParser.addOption('path', abbr: 'p', defaultsTo: null);
+
+  // Get passed arguments.
+  ArgResults passedArgs = argParser.parse(arguments);
+
+  // Determine if a valid folder path was provided and process accordingly.
+  if (passedArgs['path'] != null) {
+    print('Targeted path: ${passedArgs["path"]}');
+    /*
+      Thoughts on Algorithm:
+      Algorithm should delete folder at provided path and any files or subfolders within it.
+
+      Get number of CPU cores and use this to identify an appropriate thread count to use. ✅
+      Build centralized List of files in folder or any subfolders of the folder. ✅
+      Split centralized List of files into sublists based on number of threads to use. ✅
+      Spawn threads to delete files in each sublist of file paths. ✅
+      Once all threads created to delete files have completed their work, delete targeted folder. ✅
+    */
+    // Determine number of threads to use during delete operation.
+    print('Determining number of threads to use in delete operation.');
+    int numThreads = (Platform.numberOfProcessors / 2).ceil();
+    print('file_cleaner will use $numThreads threads for delete operation.');
+
+    // Define a List of FileSystemEntities to track paths to be included in delete operation.
+    print('Building list of paths to delete.');
+    List<FileSystemEntity> paths = [];
+
+    try {
+      // Populate paths List with detected file and directory paths in target directory.
+      await Directory(passedArgs['path'])
+          .list(recursive: true)
+          .toList()
+          .then((list) => paths = list);
+
+      // Sort List of paths alphabetically.
+      paths.sort((a, b) => a.path.compareTo(b.path));
+
+      print(
+          'Paths list built. Proceeding to spawn threads to initiate delete operation.');
+
+      if (paths.length >= numThreads) {
+        // Split up List of paths into sublists and proceed to spawn threads to delete files.
+        for (int i = 0; i < paths.length; i += numThreads) {
+          int endIndex =
+              (i + numThreads < paths.length) ? i + numThreads : paths.length;
+
+          print(
+              'Spawning thread to delete ${paths.sublist(i, endIndex).length} files.');
+
+          Isolate.spawn(file_cleaner.deleteFiles, [paths.sublist(i, endIndex)]);
+        }
+      } else {
+        Isolate.spawn(file_cleaner.deleteFiles, [paths]);
+      }
+
+      // print('Files in targeted path have been deleted.');
+      // print('Proceeding to delete target path.');
+
+      // // Delete target directory.
+      // Directory(passedArgs['path']).deleteSync(recursive: true);
+
+      // print('Targeted path deleted. Delete operation complete.');
+    } catch (exception) {
+      print(exception);
+    }
+  } else {
+    print(
+        'ERROR: No folder path provided. Please provide a valid folder path with the "-p" argument when running.');
+  }
+}
