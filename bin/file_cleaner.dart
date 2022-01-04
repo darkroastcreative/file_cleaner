@@ -15,16 +15,7 @@ void main(List<String> arguments) async {
   // Determine if a valid folder path was provided and process accordingly.
   if (passedArgs['path'] != null) {
     print('Targeted path: ${passedArgs["path"]}');
-    /*
-      Thoughts on Algorithm:
-      Algorithm should delete folder at provided path and any files or subfolders within it.
 
-      Get number of CPU cores and use this to identify an appropriate thread count to use. ✅
-      Build centralized List of files in folder or any subfolders of the folder. ✅
-      Split centralized List of files into sublists based on number of threads to use. ✅
-      Spawn threads to delete files in each sublist of file paths. ✅
-      Once all threads created to delete files have completed their work, delete targeted folder. ✅
-    */
     // Determine number of threads to use during delete operation.
     print('Determining number of threads to use in delete operation.');
     int numThreads = (Platform.numberOfProcessors / 2).ceil();
