@@ -7,3 +7,6 @@ build/
 
 # System files.
 .DS_Store
+
+# Visual Studio Code-specific files.
+.vscode
