@@ -39,15 +39,23 @@ void main(List<String> arguments) async {
           'Paths list built. Proceeding to spawn threads to initiate delete operation.');
 
       if (paths.length >= numThreads) {
-        // Split up List of paths into sublists and proceed to spawn threads to delete files.
-        for (int i = 0; i < paths.length; i += numThreads) {
-          int endIndex =
-              (i + numThreads < paths.length) ? i + numThreads : paths.length;
+        int pathsPerThread = (paths.length / numThreads).ceil();
+        int startIndex = 0;
+        int endIndex = 0 + pathsPerThread;
 
+        for (int i = 0; i < numThreads; i++) {
           print(
-              'Spawning thread to delete ${paths.sublist(i, endIndex).length} files.');
+              'Spawning thread to delete ${paths.sublist(startIndex, endIndex).length} files.');
 
-          Isolate.spawn(file_cleaner.deleteFiles, [paths.sublist(i, endIndex)]);
+          Isolate.spawn(
+              file_cleaner.deleteFiles, [paths.sublist(startIndex, endIndex)]);
+
+          startIndex = endIndex;
+          endIndex = startIndex + pathsPerThread;
+
+          if (endIndex > paths.length) {
+            endIndex = paths.length;
+          }
         }
       } else {
         Isolate.spawn(file_cleaner.deleteFiles, [paths]);
