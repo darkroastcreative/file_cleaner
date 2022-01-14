@@ -7,7 +7,8 @@ import 'dart:io';
 void main(List<String> arguments) async {
   // Set up ArgParser for configuring and parsing command line arguments.
   ArgParser argParser = ArgParser();
-  argParser.addOption('path', abbr: 'p', defaultsTo: null);
+  argParser.addOption('path', abbr: 'p', defaultsTo: null, mandatory: true);
+  argParser.addOption('threadCount', abbr: 't', defaultsTo: null);
 
   // Get passed arguments.
   ArgResults passedArgs = argParser.parse(arguments);
@@ -16,9 +17,17 @@ void main(List<String> arguments) async {
   if (passedArgs['path'] != null) {
     print('Targeted path: ${passedArgs["path"]}');
 
-    // Determine number of threads to use during delete operation.
     print('Determining number of threads to use in delete operation.');
     int numThreads = (Platform.numberOfProcessors / 2).ceil();
+
+    // Determine number of threads to use during delete operation.
+    if (passedArgs['threadCount'] != null &&
+        int.tryParse(passedArgs['threadCount']) != null) {
+      numThreads = int.parse(
+        passedArgs['threadCount'],
+      );
+    }
+
     print('file_cleaner will use $numThreads threads for delete operation.');
 
     // Define a List of FileSystemEntities to track paths to be included in delete operation.
@@ -80,13 +89,13 @@ void main(List<String> arguments) async {
         });
       }
 
-      print('Files in targeted path have been deleted.');
-      print('Proceeding to delete target path.');
+      // print('Files in targeted path have been deleted.');
+      // print('Proceeding to delete target path.');
 
-      // Delete target directory.
-      // Directory(passedArgs['path']).deleteSync(recursive: true);
+      // // Delete target directory.
+      // // Directory(passedArgs['path']).deleteSync(recursive: true);
 
-      print('Targeted path deleted. Delete operation complete. ✅');
+      // print('Targeted path deleted. Delete operation complete. ✅');
     } catch (exception) {
       print(exception);
       exit(1);
