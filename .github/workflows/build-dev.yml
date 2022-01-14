@@ -8,9 +8,12 @@ name: Dev Build
 on:
   push:
     branches:
-      - release/*
+      - Dev
+      - release/**
   pull_request:
-  workflow_run:
+    branches:
+      - Dev
+  workflow_dispatch:
 
 jobs:
   build-windows:
