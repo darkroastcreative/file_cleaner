@@ -17,10 +17,11 @@ void main(List<String> arguments) async {
   if (passedArgs['path'] != null) {
     print('Targeted path: ${passedArgs["path"]}');
 
+    // Determine the number of threads to use in the delete operation by default.
     print('Determining number of threads to use in delete operation.');
     int numThreads = (Platform.numberOfProcessors / 2).ceil();
 
-    // Determine number of threads to use during delete operation.
+    // Determine if the user provided a thread count and override default count if so.
     if (passedArgs['threadCount'] != null &&
         int.tryParse(passedArgs['threadCount']) != null) {
       numThreads = int.parse(
@@ -30,72 +31,67 @@ void main(List<String> arguments) async {
 
     print('file_cleaner will use $numThreads threads for delete operation.');
 
-    // Define a List of FileSystemEntities to track paths to be included in delete operation.
-    print('Building list of paths to delete.');
-    List<FileSystemEntity> paths = [];
+    // Define a List of FileSystemEntities to track file paths to be included in delete operation.
+    print('Building list of file paths to delete.');
+    List<FileSystemEntity> filePaths = [];
 
     try {
       // Populate paths List with detected file and directory paths in target directory.
       await Directory(passedArgs['path'])
           .list(recursive: true)
           .toList()
-          .then((list) => paths = list);
-
-      // Sort List of paths alphabetically.
-      paths.sort((a, b) => a.path.length.compareTo(b.path.length));
+          .then((list) => filePaths = list.whereType<File>().toList());
 
       print(
-          'Paths list built with ${paths.length} items. Proceeding to spawn threads to initiate delete operation.');
+          'File paths list built with ${filePaths.length} items. Proceeding to spawn threads to initiate delete operation.');
 
-      List<Isolate> threads = [];
-      List<int> terminatedThreads = [];
-      ReceivePort receivePort = ReceivePort();
-      receivePort.listen((message) {
-        terminatedThreads.add(message);
-      });
-
-      if (paths.length >= numThreads) {
-        int pathsPerThread = (paths.length / numThreads).ceil();
+      /*
+        If the number of threads was provided by the user or exceeds the number
+        of files to delete, proceed with multithreaded delete. Otherwise, conduct
+        a single-threaded delete.
+      */
+      if (passedArgs['threadCount'] != null || filePaths.length >= numThreads) {
+        int pathsPerThread = (filePaths.length / numThreads).ceil();
         int startIndex = 0;
         int endIndex = 0 + pathsPerThread;
 
         for (int i = 0; i < numThreads; i++) {
           print(
-              'Spawning thread to delete ${paths.sublist(startIndex, endIndex).length} files.');
+              'Spawning thread to delete ${filePaths.sublist(startIndex, endIndex).length} files.');
 
-          Isolate.spawn(file_cleaner.deleteFiles, [
-            paths.sublist(startIndex, endIndex)
-          ]).then((isolate) =>
-              file_cleaner.prepareIsolate(isolate, threads, receivePort));
+          Isolate.spawn(file_cleaner.deleteFiles,
+              [filePaths.sublist(startIndex, endIndex), filePaths]);
 
           startIndex = endIndex;
           endIndex = startIndex + pathsPerThread;
 
-          if (endIndex > paths.length) {
-            endIndex = paths.length;
+          if (endIndex > filePaths.length) {
+            endIndex = filePaths.length;
           }
         }
       } else {
-        print('Spawning thread to delete ${paths.length} files.');
-        Isolate.spawn(file_cleaner.deleteFiles, [paths]).then((isolate) =>
-            file_cleaner.prepareIsolate(isolate, threads, receivePort));
+        print('Spawning thread to delete ${filePaths.length} files.');
+        Isolate.spawn(file_cleaner.deleteFiles, [filePaths]);
       }
 
-      while (threads.isNotEmpty) {
-        threads.forEach((thread) {
-          if (terminatedThreads.contains(thread.hashCode)) {
-            threads.remove(thread);
-          }
-        });
-      }
+      /*
+        This while loop is used to act as a "controller" to prevent the program
+        from proceeding to delete the target path until all files have been deleted.
+        This is necessary given how Islolates/"threads" are being used.
+      */
+      while (filePaths
+          .where(
+              (path) => path.existsSync() && !path.path.endsWith('.DS_Store'))
+          .toList()
+          .isNotEmpty) {}
 
-      // print('Files in targeted path have been deleted.');
-      // print('Proceeding to delete target path.');
+      print('Files in targeted path have been deleted.');
+      print('Proceeding to delete target path.');
 
-      // // Delete target directory.
-      // // Directory(passedArgs['path']).deleteSync(recursive: true);
+      // Delete the target directory to complete the delete operation.
+      Directory(passedArgs['path']).deleteSync(recursive: true);
 
-      // print('Targeted path deleted. Delete operation complete. ✅');
+      print('Targeted path deleted. Delete operation complete. ✅');
     } catch (exception) {
       print(exception);
       exit(1);
@@ -104,6 +100,4 @@ void main(List<String> arguments) async {
     print(
         'ERROR: No folder path provided. Please provide a valid folder path with the "-p" argument when running.');
   }
-
-  exit(0);
 }
