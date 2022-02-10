@@ -3,11 +3,17 @@
 # separate terms of service, privacy policy, and support
 # documentation.
 
-name: Production Build
+name: Dev Build
 
 on:
   push:
-    branches: [ main ]
+    branches:
+      - Dev
+      - release/**
+  pull_request:
+    branches:
+      - Dev
+  workflow_dispatch:
 
 jobs:
   build-windows:
@@ -29,7 +35,7 @@ jobs:
         run: dart analyze
         
       - name: Build project from source
-        run: mkdir D:\a\file_cleaner\file_cleaner\build && dart compile exe D:\a\file_cleaner\file_cleaner\bin\file_cleaner.dart -o D:\a\file_cleaner\file_cleaner\build\file_cleaner.exe
+        run: mkdir D:\a\file_cleaner\file_cleaner\build && dart compile exe D:\a\file_cleaner\file_cleaner\bin\file_cleaner.dart -o D:\a\file_cleaner\file_cleaner\build\file_cleaner_DEV.exe
         
       - name: Archive built executable
         uses: actions/upload-artifact@v2
@@ -56,7 +62,7 @@ jobs:
         run: dart analyze
         
       - name: Build project from source
-        run: mkdir /Users/runner/work/file_cleaner/file_cleaner/build && dart compile exe /Users/runner/work/file_cleaner/file_cleaner/bin/file_cleaner.dart -o /Users/runner/work/file_cleaner/file_cleaner/build/file_cleaner
+        run: mkdir /Users/runner/work/file_cleaner/file_cleaner/build && dart compile exe /Users/runner/work/file_cleaner/file_cleaner/bin/file_cleaner.dart -o /Users/runner/work/file_cleaner/file_cleaner/build/file_cleaner_DEV
         
       - name: Archive built executable
         uses: actions/upload-artifact@v2
@@ -83,7 +89,7 @@ jobs:
         run: dart analyze
         
       - name: Build project from source
-        run: mkdir /home/runner/work/file_cleaner/file_cleaner/build && dart compile exe /home/runner/work/file_cleaner/file_cleaner/bin/file_cleaner.dart -o /home/runner/work/file_cleaner/file_cleaner/build/file_cleaner
+        run: mkdir /home/runner/work/file_cleaner/file_cleaner/build && dart compile exe /home/runner/work/file_cleaner/file_cleaner/bin/file_cleaner.dart -o /home/runner/work/file_cleaner/file_cleaner/build/file_cleaner_DEV
         
       - name: Archive built executable
         uses: actions/upload-artifact@v2
